@@ -6,7 +6,6 @@
   "mixins": [
     "BeeAccessor",
     "BeeMixin",
-    "MemoryModuleAccessor",
     "WalkNodeEvaluatorMixin"
   ],
   "client": [

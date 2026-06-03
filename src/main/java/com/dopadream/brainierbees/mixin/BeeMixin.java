@@ -7,7 +7,6 @@ import com.dopadream.brainierbees.registry.ModMemoryTypes;
 import com.dopadream.brainierbees.registry.ModSensorTypes;
 import com.dopadream.brainierbees.util.HiveAccessor;
 import com.google.common.collect.ImmutableList;
-import com.mojang.serialization.Dynamic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
@@ -19,6 +18,7 @@ import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.MemorySlot;
 import net.minecraft.world.entity.ai.sensing.Sensor;
 import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.animal.Animal;
@@ -33,6 +33,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -41,18 +42,21 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 @Mixin(Bee.class)
 public abstract class BeeMixin extends Animal implements HiveAccessor {
 
     @Shadow private @org.jspecify.annotations.Nullable EntityReference<LivingEntity> persistentAngerTarget;
 
     @Unique
-    private static final ImmutableList<SensorType<? extends Sensor<? super Bee>>> SENSOR_TYPES;
-    @Unique
-    private static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES;
+    private BlockPos brainier_bees$memorizedHome;
 
     @Unique
-    private BlockPos brainier_bees$memorizedHome;
+    private static final Brain.Provider<Bee> BRAIN_PROVIDER;
 
     @Override
     public BlockPos brainier_bees$getMemorizedHome() {
@@ -67,6 +71,8 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     @Unique
     public int brainier_bees$HoneyCooldown;
 
+
+
     public BeeMixin(EntityType<? extends Bee> entityType, Level level) {
         super(entityType, level);
     }
@@ -74,7 +80,7 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
 
     @Inject(method = "<init>", at = @At("TAIL"))
     public void Bee(EntityType<? extends Bee> entityType, Level level, CallbackInfo ci) {
-        this.setPathfindingMalus(PathType.DANGER_FIRE, 8.0F);
+        this.setPathfindingMalus(PathType.FIRE, 8.0F);
         this.setPathfindingMalus(PathType.TRAPDOOR, 8.0F);
         this.setPathfindingMalus(PathType.WATER, -3.0F);
     }
@@ -166,7 +172,7 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     @Unique
     private boolean brainier_bees$newHiveNearFire() {
         Bee bee = (Bee) (Object) this;
-        if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty()) {
+        if (!bee.getBrain().hasMemoryValue(ModMemoryTypes.HIVE_POS) || bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty()) {
             return false;
         } else {
             BlockEntity blockEntity = level().getBlockEntity(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
@@ -178,6 +184,10 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     private boolean brainier_bees$isSickOfSearching() {
         Bee bee = (Bee) (Object) this;
         int searchAttempts = BrainierBeesConfig.SEARCH_ATTEMPTS;
+
+        if (!bee.getBrain().hasMemoryValue(ModMemoryTypes.SEARCH_ATTEMPTS)) {
+            return false;
+        }
 
         return bee.getBrain().getMemory(ModMemoryTypes.SEARCH_ATTEMPTS).isPresent() && (bee.getBrain().getMemory(ModMemoryTypes.SEARCH_ATTEMPTS).get() >= searchAttempts);
     }
@@ -218,57 +228,26 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
         return super.finalizeSpawn(serverLevelAccessor, difficultyInstance, spawnReason, spawnGroupData);
     }
 
-    public Brain.@NotNull Provider<Bee> brainProvider() {
-        return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);
+    @Override
+    protected Brain<Bee> makeBrain(Brain.Packed packedBrain) {
+            Bee $this = (Bee) (Object) this;
+            return BRAIN_PROVIDER.makeBrain($this, packedBrain);
     }
 
-    public @NotNull Brain<?> makeBrain(Dynamic<?> dynamic) {
-        return BeeAi.makeBrain(this.brainProvider().makeBrain(dynamic));
-    }
-
-    @SuppressWarnings("unchecked")
-    public @NotNull Brain<Bee> getBrain() {
+    @Override
+    public Brain<Bee> getBrain() {
         return (Brain<Bee>) super.getBrain();
     }
 
     static {
-        SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES,
-                SensorType.NEAREST_PLAYERS,
-                SensorType.HURT_BY,
-                SensorType.NEAREST_ADULT,
-                SensorType.NEAREST_LIVING_ENTITIES,
-                ModSensorTypes.BEE_TEMPTATIONS
-        );
-        MEMORY_TYPES = ImmutableList.of(MemoryModuleType.PATH,
-                MemoryModuleType.BREED_TARGET,
-                MemoryModuleType.NEAREST_LIVING_ENTITIES,
-                MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES,
-                MemoryModuleType.NEAREST_VISIBLE_PLAYER,
-                MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER,
-                MemoryModuleType.LOOK_TARGET,
-                MemoryModuleType.WALK_TARGET,
-                MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE,
-                MemoryModuleType.PATH,
-                MemoryModuleType.ATTACK_TARGET,
-                MemoryModuleType.ATTACK_COOLING_DOWN,
-                MemoryModuleType.NEAREST_VISIBLE_ADULT,
-                MemoryModuleType.HURT_BY_ENTITY,
-                MemoryModuleType.NEAREST_ATTACKABLE,
-                MemoryModuleType.TEMPTING_PLAYER,
-                MemoryModuleType.TEMPTATION_COOLDOWN_TICKS,
-                MemoryModuleType.IS_TEMPTED,
-                ModMemoryTypes.FLOWER_POS,
-                ModMemoryTypes.HIVE_POS,
-                ModMemoryTypes.LAST_PATH,
-                ModMemoryTypes.HIVE_BLACKLIST,
-                ModMemoryTypes.POLLINATING_COOLDOWN,
-                ModMemoryTypes.POLLINATING_TICKS,
-                ModMemoryTypes.SUCCESSFUL_POLLINATING_TICKS,
-                ModMemoryTypes.COOLDOWN_LOCATE_HIVE,
-                ModMemoryTypes.TRAVELLING_TICKS,
-                ModMemoryTypes.SEARCH_ATTEMPTS,
-                ModMemoryTypes.STUCK_TICKS,
-                ModMemoryTypes.WANTS_HIVE,
-                MemoryModuleType.IS_PANICKING);
+        BRAIN_PROVIDER = Brain.provider(List.of(
+                        SensorType.NEAREST_LIVING_ENTITIES,
+                        SensorType.NEAREST_PLAYERS,
+                        SensorType.NEAREST_ADULT,
+                        SensorType.HURT_BY,
+                        ModSensorTypes.BEE_TEMPTATIONS,
+                        ModSensorTypes.BEE_MEMORIES),
+                (var0) -> BeeAi.getActivities());
     }
+
 }

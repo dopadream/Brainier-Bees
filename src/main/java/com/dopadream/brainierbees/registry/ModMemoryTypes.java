@@ -2,9 +2,10 @@ package com.dopadream.brainierbees.registry;
 
 import com.mojang.serialization.Codec;
 import com.dopadream.brainierbees.BrainierBees;
-import com.dopadream.brainierbees.mixin.MemoryModuleAccessor;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.level.pathfinder.Path;
 
@@ -12,7 +13,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class ModMemoryTypes {
-    public static final CoreRegistry<MemoryModuleType<?>> MEMORY_MODULES = CoreRegistry.create(BuiltInRegistries.MEMORY_MODULE_TYPE, BrainierBees.MOD_ID);
 
     public static final MemoryModuleType<GlobalPos> FLOWER_POS = register("flower_pos", GlobalPos.CODEC);
     public static final MemoryModuleType<GlobalPos> HIVE_POS = register("hive_pos", GlobalPos.CODEC);
@@ -32,10 +32,13 @@ public class ModMemoryTypes {
 
 
     public static <U> MemoryModuleType<U> register(String id, Codec<U> codec) {
-        return MEMORY_MODULES.register(id, MemoryModuleAccessor.createMemoryModuleType(Optional.of(codec)));
+        return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, Identifier.fromNamespaceAndPath(BrainierBees.MOD_ID, id), new MemoryModuleType<>(Optional.of(codec)));
     }
 
     public static <U> MemoryModuleType<U> register(String id) {
-        return MEMORY_MODULES.register(id, MemoryModuleAccessor.createMemoryModuleType(Optional.empty()));
+        return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, Identifier.fromNamespaceAndPath(BrainierBees.MOD_ID, id), new MemoryModuleType<>(Optional.empty()));
+    }
+
+    public static void init() {
     }
 }

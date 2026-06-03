@@ -1,6 +1,7 @@
-accessWidener	v1	named
+accessWidener	v2	official
 accessible method net/minecraft/world/level/block/CropBlock getAgeProperty ()Lnet/minecraft/world/level/block/state/properties/IntegerProperty;
 accessible field net/minecraft/world/entity/Entity level Lnet/minecraft/world/level/Level;
 accessible method net/minecraft/world/entity/animal/Bee wantsToEnterHive ()Z
 accessible field net/minecraft/world/entity/ai/behavior/FollowTemptation closeEnoughDistance Ljava/util/function/Function;
 accessible method net/minecraft/world/entity/ai/behavior/FollowTemptation getTemptingPlayer (Lnet/minecraft/world/entity/PathfinderMob;)Ljava/util/Optional;
+accessible field net/minecraft/world/entity/ai/Brain memories Ljava/util/Map;

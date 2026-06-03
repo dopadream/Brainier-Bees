@@ -33,38 +33,38 @@ public class BeePathfinding extends Behavior<Bee> {
         return blockPos.closerThan(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos(), i);
     }
 
-    public static void smartBeesTM(Bee beeEntity, CachedPathHolder cachedPathHolder) {
+    public static void smartBeesTM(Bee bee, CachedPathHolder cachedPathHolder) {
 
         if (cachedPathHolder == null || cachedPathHolder.pathTimer > 50 || cachedPathHolder.cachedPath == null ||
-                (beeEntity.getDeltaMovement().length() <= 0.05d && cachedPathHolder.pathTimer > 5) ||
-                beeEntity.blockPosition().distManhattan(cachedPathHolder.cachedPath.getTarget()) <= 4) {
-            Level world = beeEntity.level();
-            BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos().set(beeEntity.blockPosition());
+                (bee.getDeltaMovement().length() <= 0.05d && cachedPathHolder.pathTimer > 5) ||
+                bee.blockPosition().distManhattan(cachedPathHolder.cachedPath.getTarget()) <= 4) {
+            Level world = bee.level();
+            BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos().set(bee.blockPosition());
             LevelChunk levelChunk = world.getChunkAt(mutable);
             int height = levelChunk.getHeight(Heightmap.Types.WORLD_SURFACE, mutable.getX(), mutable.getZ()) + 1;
 
-            for (int attempt = 0; attempt < 15 && beeEntity.blockPosition().distManhattan(mutable) <= 5; attempt++) {
+            for (int attempt = 0; attempt < 15 && bee.blockPosition().distManhattan(mutable) <= 5; attempt++) {
                 // pick a random place to fly to
 
-                if (!beeEntity.isLeashed()) {
-                    if ((world.dimensionType().hasCeiling()) || (beeEntity.getBlockY() <= (height + 3))) {
-                        mutable.set(beeEntity.blockPosition()).move(
-                                beeEntity.getRandom().nextInt(21) - 10,
-                                beeEntity.getRandom().nextInt(21) - 10,
-                                beeEntity.getRandom().nextInt(21) - 10
+                if (!bee.isLeashed()) {
+                    if ((world.dimensionType().hasCeiling()) || (bee.getBlockY() <= (height + 3))) {
+                        mutable.set(bee.blockPosition()).move(
+                                bee.getRandom().nextInt(21) - 10,
+                                bee.getRandom().nextInt(21) - 10,
+                                bee.getRandom().nextInt(21) - 10
                         );
                     } else {
-                        mutable.set(beeEntity.blockPosition()).move(
-                                beeEntity.getRandom().nextInt(21) - 10,
-                                beeEntity.getRandom().nextInt(21) - 10,
-                                beeEntity.getRandom().nextInt(21) - 10
+                        mutable.set(bee.blockPosition()).move(
+                                bee.getRandom().nextInt(21) - 10,
+                                bee.getRandom().nextInt(21) - 10,
+                                bee.getRandom().nextInt(21) - 10
                         );
                     }
                 } else {
-                    mutable.set(beeEntity.blockPosition()).move(
-                            beeEntity.getRandom().nextInt(5) - 2,
-                            beeEntity.getRandom().nextInt(5) - 2,
-                            beeEntity.getRandom().nextInt(5) - 2
+                    mutable.set(bee.blockPosition()).move(
+                            bee.getRandom().nextInt(5) - 2,
+                            bee.getRandom().nextInt(5) - 2,
+                            bee.getRandom().nextInt(5) - 2
                     );
                 }
 
@@ -78,15 +78,15 @@ public class BeePathfinding extends Behavior<Bee> {
                 }
 
                 if (valid && !world.getBlockState(mutable.offset(0, -4, 0)).isAir()) {
-                    mutable.set(mutable.getX(), mutable.getY() - beeEntity.getRandom().nextInt(0, 2), mutable.getZ());
-                    if (beeEntity.getLeashData() == null) {
-                        if (beeEntity.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty()) {
+                    mutable.set(mutable.getX(), mutable.getY() - bee.getRandom().nextInt(0, 2), mutable.getZ());
+                    if (bee.getLeashData() == null) {
+                        if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty()) {
                             break; // Valid spot to go towards. Homeless bees only!
                         } else {
-                            if (!blockCloserThan(beeEntity, mutable, BrainierBeesConfig.MAX_WANDER_RADIUS)) {
-                                Vec3 hivePos = Vec3.atCenterOf(beeEntity.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
+                            if (!blockCloserThan(bee, mutable, BrainierBeesConfig.MAX_WANDER_RADIUS)) {
+                                Vec3 hivePos = Vec3.atCenterOf(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
                                 mutable.set(
-                                        lerp(beeEntity.position(), hivePos, 0.25)
+                                        lerp(bee.position(), hivePos, 0.25)
                                 );
                                 break;
                             }
@@ -94,17 +94,17 @@ public class BeePathfinding extends Behavior<Bee> {
                         }
                     } else {
                         mutable.set(
-                                lerp(mutable.getCenter(), Objects.requireNonNull(beeEntity.getLeashData().leashHolder).position(), 0.25)
+                                lerp(new Vec3(mutable.getX(), mutable.getY(), mutable.getZ()), Objects.requireNonNull(bee.getLeashData().leashHolder).position(), 0.25)
                         );
                         break; // Wander freely in a small area when on a leash!
                     }
                 } else {
-                    mutable.set(beeEntity.blockPosition());
+                    mutable.set(bee.blockPosition());
                 }
             }
 
-            Path newPath = beeEntity.getNavigation().createPath(mutable, 1);
-            beeEntity.getNavigation().moveTo(newPath, 1);
+            Path newPath = bee.getNavigation().createPath(mutable, 1);
+            bee.getNavigation().moveTo(newPath, 1);
 
             if (cachedPathHolder == null) {
                 cachedPathHolder = new CachedPathHolder();
@@ -112,7 +112,7 @@ public class BeePathfinding extends Behavior<Bee> {
             cachedPathHolder.cachedPath = newPath;
             cachedPathHolder.pathTimer = 0;
         } else {
-            beeEntity.getNavigation().moveTo(cachedPathHolder.cachedPath, 1);
+            bee.getNavigation().moveTo(cachedPathHolder.cachedPath, 1);
             cachedPathHolder.pathTimer += 1;
         }
 
@@ -126,8 +126,8 @@ public class BeePathfinding extends Behavior<Bee> {
     }
 
     @Override
-    protected void start(ServerLevel serverLevel, Bee livingEntity, long l) {
-        smartBeesTM(livingEntity, beeCachedPathHolder);
+    protected void start(ServerLevel serverLevel, Bee bee, long l) {
+        smartBeesTM(bee, beeCachedPathHolder);
     }
 
     @Override
@@ -141,10 +141,10 @@ public class BeePathfinding extends Behavior<Bee> {
     }
 
     @Override
-    protected void tick(ServerLevel serverLevel, Bee livingEntity, long l) {
-        super.tick(serverLevel, livingEntity, l);
-        if ((livingEntity).hasNectar()) {
-            livingEntity.getBrain().setMemory(ModMemoryTypes.POLLINATING_COOLDOWN, 400);
+    protected void tick(ServerLevel serverLevel, Bee bee, long l) {
+        super.tick(serverLevel, bee, l);
+        if ((bee).hasNectar()) {
+            bee.getBrain().setMemory(ModMemoryTypes.POLLINATING_COOLDOWN, 400);
         }
     }
 

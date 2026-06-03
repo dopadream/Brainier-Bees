@@ -16,7 +16,7 @@ public class BrainierBees implements ModInitializer {
     @Override
     public void onInitialize() {
         BrainierBeesConfig.init();
-        ModMemoryTypes.MEMORY_MODULES.register();
+        ModMemoryTypes.init();
         ModSensorTypes.init();
     }
 }

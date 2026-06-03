@@ -32,13 +32,13 @@ public class GrowCropTask extends Behavior<Bee> {
     }
 
     @Override
-    protected boolean checkExtraStartConditions(ServerLevel serverLevel, Bee livingEntity) {
-        return canBeeUse(serverLevel, livingEntity);
+    protected boolean checkExtraStartConditions(ServerLevel serverLevel, Bee bee) {
+        return canBeeUse(serverLevel, bee);
     }
 
     @Override
-    protected boolean canStillUse(ServerLevel serverLevel, Bee livingEntity, long l) {
-        return canBeeUse(serverLevel, livingEntity);
+    protected boolean canStillUse(ServerLevel serverLevel, Bee bee, long l) {
+        return canBeeUse(serverLevel, bee);
     }
 
     @Override
