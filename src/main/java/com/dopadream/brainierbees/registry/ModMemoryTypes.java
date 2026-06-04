@@ -30,7 +30,6 @@ public class ModMemoryTypes {
 
     public static final MemoryModuleType<Boolean> WANTS_HIVE = register("wants_hive", Codec.BOOL);
 
-
     public static <U> MemoryModuleType<U> register(String id, Codec<U> codec) {
         return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, Identifier.fromNamespaceAndPath(BrainierBees.MOD_ID, id), new MemoryModuleType<>(Optional.of(codec)));
     }

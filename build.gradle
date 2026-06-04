@@ -15,7 +15,7 @@ loom {
         client {
             programArgs(["--username", "dopadream", "--uuid", "a95cdda6-fad4-427f-99dd-b6684602248e"])
             vmArgs "-DMC_DEBUG_ENABLED",
-                    "-DMC_DEBUG_PATHFINDING=true",
+                    "-DMC_DEBUG_PATHFINDING=false",
                     "-DMC_DEBUG_BRAIN=true"
         }
     }

@@ -6,7 +6,8 @@ import com.dopadream.brainierbees.config.BrainierBeesConfig;
 import com.dopadream.brainierbees.registry.ModMemoryTypes;
 import com.dopadream.brainierbees.registry.ModSensorTypes;
 import com.dopadream.brainierbees.util.HiveAccessor;
-import com.google.common.collect.ImmutableList;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
@@ -18,8 +19,7 @@ import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.ai.memory.MemorySlot;
-import net.minecraft.world.entity.ai.sensing.Sensor;
+import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.bee.Bee;
@@ -31,7 +31,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,21 +41,35 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 @Mixin(Bee.class)
 public abstract class BeeMixin extends Animal implements HiveAccessor {
 
-    @Shadow private @org.jspecify.annotations.Nullable EntityReference<LivingEntity> persistentAngerTarget;
+    @Unique
+    private static final Brain.Provider<Bee> BRAIN_PROVIDER;
 
+    static {
+        BRAIN_PROVIDER = Brain.provider(List.of(
+                        SensorType.NEAREST_LIVING_ENTITIES,
+                        SensorType.NEAREST_PLAYERS,
+                        SensorType.NEAREST_ADULT,
+                        SensorType.HURT_BY,
+                        ModSensorTypes.BEE_TEMPTATIONS,
+                        ModSensorTypes.BEE_MEMORIES),
+                (var0) -> BeeAi.getActivities());
+    }
+
+    @Unique
+    public int brainier_bees$HoneyCooldown;
+    @Shadow
+    private @org.jspecify.annotations.Nullable EntityReference<LivingEntity> persistentAngerTarget;
     @Unique
     private BlockPos brainier_bees$memorizedHome;
 
-    @Unique
-    private static final Brain.Provider<Bee> BRAIN_PROVIDER;
+    public BeeMixin(EntityType<? extends Bee> entityType, Level level) {
+        super(entityType, level);
+    }
 
     @Override
     public BlockPos brainier_bees$getMemorizedHome() {
@@ -68,21 +81,9 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
         this.brainier_bees$memorizedHome = pos;
     }
 
-    @Unique
-    public int brainier_bees$HoneyCooldown;
-
-
-
-    public BeeMixin(EntityType<? extends Bee> entityType, Level level) {
-        super(entityType, level);
-    }
-
-
     @Inject(method = "<init>", at = @At("TAIL"))
     public void Bee(EntityType<? extends Bee> entityType, Level level, CallbackInfo ci) {
-        this.setPathfindingMalus(PathType.FIRE, 8.0F);
-        this.setPathfindingMalus(PathType.TRAPDOOR, 8.0F);
-        this.setPathfindingMalus(PathType.WATER, -3.0F);
+        this.setPathfindingMalus(PathType.TRAPDOOR, -1.0F);
     }
 
     @Inject(method = "registerGoals", at = @At("RETURN"))
@@ -93,6 +94,8 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     @Inject(method = "customServerAiStep", at = @At("RETURN"))
     public void aiStep(CallbackInfo ci) {
         Bee $this = (Bee) (Object) this;
+        $this.setNoGravity(true);
+
         ProfilerFiller profilerFiller = Profiler.get();
         profilerFiller.push("beeBrain");
         this.getBrain().tick((ServerLevel) $this.level(), $this);
@@ -106,18 +109,18 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
         }
 
         if (getBrain().getMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE).isPresent()) {
-            if (getBrain().getMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE).get() > 0 ) {
+            if (getBrain().getMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE).get() > 0) {
                 getBrain().setMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE, getBrain().getMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE).get() - 1);
             } else {
                 getBrain().eraseMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE);
             }
         }
 
-        if ((this.brainier_bees$getMemorizedHome() == null) && (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()) ) {
+        if ((this.brainier_bees$getMemorizedHome() == null) && (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent())) {
             this.brainier_bees$setMemorizedHome(getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
         }
 
-        if(this.brainier_bees$getMemorizedHome() != null) {
+        if (this.brainier_bees$getMemorizedHome() != null) {
             getBrain().setMemory(ModMemoryTypes.HIVE_POS, new GlobalPos(level().dimension(), this.brainier_bees$getMemorizedHome()));
         }
 
@@ -148,7 +151,7 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     @Unique
     public boolean brainier_bees$newWantsHive() {
         Bee bee = (Bee) (Object) this;
-        if (((BeeAccessor)bee).getStayOutOfHiveCountdown() <= 0 && !bee.hasStung() && !this.brainier_bees$newIsPollinating() && bee.getTarget() == null) {
+        if (((BeeAccessor) bee).getStayOutOfHiveCountdown() <= 0 && !bee.hasStung() && !this.brainier_bees$newIsPollinating() && bee.getTarget() == null) {
             boolean bl = this.level().environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, this.position()) || brainier_bees$isSickOfSearching() || bee.hasNectar();
             return bl && !this.brainier_bees$newHiveNearFire();
         } else {
@@ -176,7 +179,7 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
             return false;
         } else {
             BlockEntity blockEntity = level().getBlockEntity(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
-            return blockEntity instanceof BeehiveBlockEntity && ((BeehiveBlockEntity)blockEntity).isFireNearby();
+            return blockEntity instanceof BeehiveBlockEntity && ((BeehiveBlockEntity) blockEntity).isFireNearby();
         }
     }
 
@@ -191,7 +194,6 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
 
         return bee.getBrain().getMemory(ModMemoryTypes.SEARCH_ATTEMPTS).isPresent() && (bee.getBrain().getMemory(ModMemoryTypes.SEARCH_ATTEMPTS).get() >= searchAttempts);
     }
-
 
     @Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
     public void addAdditionalSaveData(ValueOutput valueOutput, CallbackInfo ci) {
@@ -215,13 +217,25 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
         }
     }
 
+    @WrapOperation(method = "createNavigation", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/navigation/FlyingPathNavigation;setCanFloat(Z)V"))
+    public void overrideNavigation(FlyingPathNavigation instance, boolean flag, Operation<Void> original) {
+        instance.setCanFloat(true);
+    }
+
+    @Inject(method = "isFlapping", at = @At("RETURN"), cancellable = true)
+    public void isFlapping(CallbackInfoReturnable<Boolean> cir) {
+        Bee bee = (Bee) (Object) this;
+        cir.setReturnValue(!bee.onGround());
+    }
+
     @Override
     public float getWalkTargetValue(BlockPos blockPos, LevelReader levelReader) {
         return levelReader.getBlockState(blockPos).isAir() ? 10.0f : 0.0f;
     }
 
     @Override
-    public @NotNull SpawnGroupData finalizeSpawn(ServerLevelAccessor serverLevelAccessor, DifficultyInstance difficultyInstance, EntitySpawnReason spawnReason, @Nullable SpawnGroupData spawnGroupData) {
+    @Nullable
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor serverLevelAccessor, DifficultyInstance difficultyInstance, EntitySpawnReason spawnReason, @Nullable SpawnGroupData spawnGroupData) {
         Bee $this = (Bee) (Object) this;
         RandomSource randomSource = serverLevelAccessor.getRandom();
         BeeAi.initMemories($this, randomSource);
@@ -229,25 +243,14 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     }
 
     @Override
-    protected Brain<Bee> makeBrain(Brain.Packed packedBrain) {
-            Bee $this = (Bee) (Object) this;
-            return BRAIN_PROVIDER.makeBrain($this, packedBrain);
+    protected @NonNull Brain<Bee> makeBrain(Brain.Packed packedBrain) {
+        Bee $this = (Bee) (Object) this;
+        return BRAIN_PROVIDER.makeBrain($this, packedBrain);
     }
 
     @Override
-    public Brain<Bee> getBrain() {
+    public @NonNull Brain<Bee> getBrain() {
         return (Brain<Bee>) super.getBrain();
-    }
-
-    static {
-        BRAIN_PROVIDER = Brain.provider(List.of(
-                        SensorType.NEAREST_LIVING_ENTITIES,
-                        SensorType.NEAREST_PLAYERS,
-                        SensorType.NEAREST_ADULT,
-                        SensorType.HURT_BY,
-                        ModSensorTypes.BEE_TEMPTATIONS,
-                        ModSensorTypes.BEE_MEMORIES),
-                (var0) -> BeeAi.getActivities());
     }
 
 }
