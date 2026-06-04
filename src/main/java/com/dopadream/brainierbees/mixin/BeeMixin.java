@@ -84,6 +84,8 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     @Inject(method = "<init>", at = @At("TAIL"))
     public void Bee(EntityType<? extends Bee> entityType, Level level, CallbackInfo ci) {
         this.setPathfindingMalus(PathType.TRAPDOOR, -1.0F);
+        this.setPathfindingMalus(PathType.DOOR_IRON_CLOSED, -1.0F);
+        this.setPathfindingMalus(PathType.DOOR_WOOD_CLOSED, -1.0F);
     }
 
     @Inject(method = "registerGoals", at = @At("RETURN"))
