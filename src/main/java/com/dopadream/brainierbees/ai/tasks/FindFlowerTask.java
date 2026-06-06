@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 public class FindFlowerTask extends Behavior<Bee> {
-    private BlockPos flowerPosPublic;
+    private BlockPos flowerPosPublic = null;
 
 
     public FindFlowerTask() {
@@ -31,12 +31,12 @@ public class FindFlowerTask extends Behavior<Bee> {
 
     @Override
     protected boolean checkExtraStartConditions(ServerLevel world, Bee bee) {
-        return !bee.hasNectar() || (bee.getBrain().getMemory(ModMemoryTypes.FLOWER_POS).isEmpty() && bee.getBrain().getMemory(ModMemoryTypes.POLLINATING_COOLDOWN).isEmpty()) && !(bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent() && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).get());
+        return !bee.hasNectar() && (bee.getBrain().getMemory(ModMemoryTypes.FLOWER_POS).isEmpty() && bee.getBrain().getMemory(ModMemoryTypes.POLLINATING_COOLDOWN).isEmpty()) && !(bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent() && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).get());
     }
 
     @Override
     protected boolean canStillUse(ServerLevel world, Bee bee, long l) {
-        return !bee.hasNectar() || (bee.getBrain().getMemory(ModMemoryTypes.FLOWER_POS).isEmpty() && bee.getBrain().getMemory(ModMemoryTypes.POLLINATING_COOLDOWN).isEmpty()) && !(bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent() && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).get());
+        return !bee.hasNectar() && (bee.getBrain().getMemory(ModMemoryTypes.FLOWER_POS).isEmpty() && bee.getBrain().getMemory(ModMemoryTypes.POLLINATING_COOLDOWN).isEmpty()) && !(bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent() && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).get());
     }
 
     public BlockPos getFlowerPos(Bee bee, ServerLevel level) {
@@ -44,21 +44,22 @@ public class FindFlowerTask extends Behavior<Bee> {
         if (bee.isLeashed()) {
             radius = 5;
         }
+
         List<BlockPos> possibles = Lists.newArrayList();
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
                 for (int y = -radius; y <= radius; y++) {
-
-                    BlockPos pos = new BlockPos(bee.getBlockX() + x, bee.getBlockY() + y, bee.getBlockZ() + z);
+                    BlockPos pos;
 
                     if (bee.isLeashed() && bee.getLeashData() != null && bee.getLeashData().leashHolder != null) {
                         pos = new BlockPos(bee.getLeashData().leashHolder.blockPosition().getX() + x, bee.getLeashData().leashHolder.blockPosition().getY() + y, bee.getLeashData().leashHolder.blockPosition().getZ() + z);
+                    } else {
+                        pos = new BlockPos(bee.getBlockX() + x, bee.getBlockY() + y, bee.getBlockZ() + z);
                     }
 
-                    if (level.getBlockState(pos).is(BlockTags.FLOWERS) && !level.getBlockState(pos).hasProperty(BlockStateProperties.WATERLOGGED)) {
+                    if (Bee.attractsBees(level.getBlockState(pos))) {
                         possibles.add(pos);
                     }
-
                 }
             }
         }
@@ -74,7 +75,10 @@ public class FindFlowerTask extends Behavior<Bee> {
 
     @Override
     protected void start(ServerLevel level, Bee bee, long l) {
-        BlockPos flowerPos = this.getFlowerPos(bee, level);
+        BlockPos flowerPos = null;
+
+        if (this.flowerPosPublic == null)
+            flowerPos = this.getFlowerPos(bee, level);
 
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
             if (flowerPos != null) {
@@ -95,17 +99,17 @@ public class FindFlowerTask extends Behavior<Bee> {
             BlockPos flowerPos = this.flowerPosPublic;
             BehaviorUtils.setWalkAndLookTargetMemories(bee, flowerPos, 0.4F, 1);
             Path flower = bee.getNavigation().createPath(flowerPos, 1);
-            if (flower != null && flower.canReach()) {
+            if (flower != null && flower.canReach() && Bee.attractsBees(level.getBlockState(flowerPos))) {
 
                 bee.getNavigation().moveTo(flower, 0.6);
 
-                if (bee.blockPosition().closerThan(flowerPos, 2) && level.getBlockState(flowerPos).is(BlockTags.FLOWERS)) {
+                if (bee.blockPosition().closerThan(flowerPos, 2)) {
                     bee.getBrain().setMemory(ModMemoryTypes.FLOWER_POS, GlobalPos.of(level.dimension(), flowerPos));
                 }
 
                 if (bee.isLeashed() && bee.getLeashData() != null && bee.getLeashData().leashHolder != null) {
                     BlockPos leashOrigin = bee.getLeashData().leashHolder.blockPosition();
-                    if (!leashOrigin.closerThan(flowerPos, 5.5) || !level.getBlockState(flowerPos).is(BlockTags.FLOWERS)) {
+                    if (!leashOrigin.closerThan(flowerPos, 5.5) || !Bee.attractsBees(level.getBlockState(flowerPos))) {
                         bee.getBrain().eraseMemory(ModMemoryTypes.FLOWER_POS);
                         this.flowerPosPublic = null;
                         bee.getBrain().setMemory(ModMemoryTypes.POLLINATING_COOLDOWN, UniformInt.of(120, 240).sample(level.getRandom()));
