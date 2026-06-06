@@ -9,14 +9,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.valueproviders.UniformInt;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.ai.ActivityData;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
-import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.animal.bee.Bee;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
@@ -53,7 +51,7 @@ public class BeeAi {
 
     private static ActivityData<Bee> initPollinateActivity() {
         return ActivityData.create(
-                Activity.CELEBRATE,
+                Activity.INVESTIGATE,
                 ImmutableList.of(
                         Pair.of(0, BabyFollowAdult.create(ADULT_FOLLOW_RANGE, 1.25F)),
                         Pair.of(1, new FindFlowerTask()),
@@ -122,17 +120,6 @@ public class BeeAi {
         }
     }
 
-
-    public static boolean isPollinating(Bee bee) {
-        boolean pollinating = bee.getBrain().hasMemoryValue(ModMemoryTypes.SUCCESSFUL_POLLINATING_TICKS);
-
-        if (pollinating && bee.getBrain().getMemory(ModMemoryTypes.SUCCESSFUL_POLLINATING_TICKS).get() == 0) {
-            pollinating = false;
-        }
-
-        return pollinating;
-    }
-
     public static List<ActivityData<Bee>> getActivities() {
         return List.of(initCoreActivity(), initIdleActivity(), initStingActivity(), initPollinateActivity());
     }
@@ -143,7 +130,7 @@ public class BeeAi {
     }
 
     public static void updateActivity(Bee bee) {
-        bee.getBrain().setActiveActivityToFirstValid(ImmutableList.of(Activity.FIGHT,  Activity.CELEBRATE, Activity.IDLE));
+        bee.getBrain().setActiveActivityToFirstValid(ImmutableList.of(Activity.FIGHT,  Activity.INVESTIGATE, Activity.IDLE));
     }
 
 }
