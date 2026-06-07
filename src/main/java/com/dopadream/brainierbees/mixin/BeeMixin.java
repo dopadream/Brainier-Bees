@@ -120,9 +120,7 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
 
         if ((this.brainier_bees$getMemorizedHome() == null) && (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent())) {
             this.brainier_bees$setMemorizedHome(getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
-        }
-
-        if (this.brainier_bees$getMemorizedHome() != null && (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty())) {
+        } else if (this.brainier_bees$getMemorizedHome() != null && (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty())) {
             getBrain().setMemory(ModMemoryTypes.HIVE_POS, new GlobalPos(level().dimension(), this.brainier_bees$getMemorizedHome()));
         }
 
