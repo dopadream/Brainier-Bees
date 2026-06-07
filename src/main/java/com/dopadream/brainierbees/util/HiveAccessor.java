@@ -17,15 +17,11 @@ public interface HiveAccessor {
 
     void brainier_bees$setMemorizedHome(BlockPos pos);
 
-    private void dropHive(Bee bee) {
-        bee.getBrain().setMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE, 200);
-    }
-
     default void dropAndBlacklistHive(Bee bee) {
         if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()) {
             ((HiveAccessor)bee).removeMemorizedHive(bee);
         }
-        ((HiveAccessor)bee).dropHive(bee);
+        bee.getBrain().setMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE, 200);
     }
 
     default void blacklistTarget(Bee bee, BlockPos blockPos) {

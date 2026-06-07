@@ -1,6 +1,7 @@
 package com.dopadream.brainierbees.ai.tasks;
 
 import com.dopadream.brainierbees.registry.ModMemoryTypes;
+import com.dopadream.brainierbees.util.HiveAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
@@ -26,7 +27,7 @@ public class EnterHiveTask extends Behavior<Bee> {
                 if (!beehiveBlockEntity.isFull()) {
                     canEnter = true;
                 } else {
-                    bee.getBrain().eraseMemory(ModMemoryTypes.HIVE_POS);
+                    dropHive(bee);
                 }
             }
         }
@@ -43,5 +44,9 @@ public class EnterHiveTask extends Behavior<Bee> {
             }
         }
         super.start(serverLevel, bee, l);
+    }
+
+    private void dropHive(Bee bee) {
+        ((HiveAccessor) bee).dropAndBlacklistHive(bee);
     }
 }

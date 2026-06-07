@@ -40,7 +40,6 @@ public class LocateHiveTask extends Behavior<Bee> {
         if (!list.isEmpty()) {
             for(BlockPos blockPos : list) {
                 if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_BLACKLIST).isEmpty() || !bee.getBrain().getMemory(ModMemoryTypes.HIVE_BLACKLIST).get().contains(GlobalPos.of(bee.level().dimension(), blockPos))) {
-                    bee.getBrain().setMemory(ModMemoryTypes.HIVE_POS, GlobalPos.of(level.dimension(), blockPos));
                     ((HiveAccessor)bee).brainier_bees$setMemorizedHome(blockPos);
                     return;
                 }
