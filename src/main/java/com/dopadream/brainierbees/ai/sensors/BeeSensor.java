@@ -19,7 +19,6 @@ public class BeeSensor extends Sensor<LivingEntity> {
     public @NonNull Set<MemoryModuleType<?>> requires() {
         return ImmutableSet.of(
                 ModMemoryTypes.FLOWER_POS,
-                ModMemoryTypes.HIVE_POS,
                 ModMemoryTypes.LAST_PATH,
                 ModMemoryTypes.HIVE_BLACKLIST,
                 ModMemoryTypes.POLLINATING_COOLDOWN,

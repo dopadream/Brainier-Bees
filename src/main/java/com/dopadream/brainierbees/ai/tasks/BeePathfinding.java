@@ -2,6 +2,7 @@ package com.dopadream.brainierbees.ai.tasks;
 
 import com.dopadream.brainierbees.config.BrainierBeesConfig;
 import com.dopadream.brainierbees.registry.ModMemoryTypes;
+import com.dopadream.brainierbees.util.HiveAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.level.ServerLevel;
@@ -30,7 +31,7 @@ public class BeePathfinding extends Behavior<Bee> {
     // Check out Bumblezone!
 
     public static boolean blockCloserThan(Bee bee, BlockPos blockPos, int i) {
-        return blockPos.closerThan(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos(), i);
+        return blockPos.closerThan(((HiveAccessor) bee).brainier_bees$getMemorizedHome(), i);
     }
 
     public static void smartBeesTM(Bee bee, CachedPathHolder cachedPathHolder) {
@@ -80,11 +81,11 @@ public class BeePathfinding extends Behavior<Bee> {
                 if (valid && !world.getBlockState(mutable.offset(0, -4, 0)).isAir()) {
                     mutable.set(mutable.getX(), mutable.getY() - bee.getRandom().nextInt(0, 2), mutable.getZ());
                     if (bee.getLeashData() == null) {
-                        if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty()) {
+                        if (((HiveAccessor) bee).brainier_bees$getMemorizedHome() == null) {
                             break; // Valid spot to go towards. Homeless bees only!
                         } else {
                             if (!blockCloserThan(bee, mutable, BrainierBeesConfig.MAX_WANDER_RADIUS)) {
-                                Vec3 hivePos = Vec3.atCenterOf(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
+                                Vec3 hivePos = Vec3.atCenterOf(((HiveAccessor) bee).brainier_bees$getMemorizedHome());
                                 mutable.set(
                                         lerp(bee.position(), hivePos, 0.25)
                                 );

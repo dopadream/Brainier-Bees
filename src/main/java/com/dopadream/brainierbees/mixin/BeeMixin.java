@@ -9,7 +9,6 @@ import com.dopadream.brainierbees.util.HiveAccessor;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.profiling.Profiler;
@@ -118,23 +117,14 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
             }
         }
 
-        if ((this.brainier_bees$getMemorizedHome() == null) && (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent())) {
-            this.brainier_bees$setMemorizedHome(getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
-        } else if (this.brainier_bees$getMemorizedHome() != null && (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty())) {
-            getBrain().setMemory(ModMemoryTypes.HIVE_POS, new GlobalPos(level().dimension(), this.brainier_bees$getMemorizedHome()));
-        }
-
-        if (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()) {
-            if (!(level().getBlockEntity(getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos()) instanceof BeehiveBlockEntity)) {
-                if (getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()) {
-                    this.dropAndBlacklistHive($this);
-                }
+        if (brainier_bees$getMemorizedHome() != null) {
+            if (!(level().getBlockEntity(brainier_bees$getMemorizedHome()) instanceof BeehiveBlockEntity)) {
+                this.dropAndBlacklistHive($this);
             }
             if (brainier_bees$newHiveNearFire()) {
                 this.dropAndBlacklistHive($this);
             }
         }
-
 
         if (brainier_bees$newWantsHive()) {
             $this.getBrain().setMemory(ModMemoryTypes.WANTS_HIVE, true);
@@ -151,7 +141,7 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     @Unique
     public boolean brainier_bees$newWantsHive() {
         Bee bee = (Bee) (Object) this;
-        if (((BeeAccessor) bee).getStayOutOfHiveCountdown() <= 0 && !bee.hasStung() && !this.brainier_bees$newIsPollinating() && bee.getTarget() == null) {
+        if (!bee.hasStung() && !this.brainier_bees$newIsPollinating() && bee.getTarget() == null) {
             boolean bl = this.level().environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, this.position()) || brainier_bees$isSickOfSearching() || bee.hasNectar();
             return bl && !this.brainier_bees$newHiveNearFire();
         } else {
@@ -175,10 +165,10 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     @Unique
     private boolean brainier_bees$newHiveNearFire() {
         Bee bee = (Bee) (Object) this;
-        if (!bee.getBrain().hasMemoryValue(ModMemoryTypes.HIVE_POS) || bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty()) {
+        if (brainier_bees$getMemorizedHome() == null) {
             return false;
         } else {
-            BlockEntity blockEntity = level().getBlockEntity(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
+            BlockEntity blockEntity = level().getBlockEntity(brainier_bees$getMemorizedHome());
             return blockEntity instanceof BeehiveBlockEntity && ((BeehiveBlockEntity) blockEntity).isFireNearby();
         }
     }

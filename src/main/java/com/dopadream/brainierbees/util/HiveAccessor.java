@@ -18,7 +18,7 @@ public interface HiveAccessor {
     void brainier_bees$setMemorizedHome(BlockPos pos);
 
     default void dropAndBlacklistHive(Bee bee) {
-        if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()) {
+        if (((HiveAccessor) bee).brainier_bees$getMemorizedHome() != null) {
             ((HiveAccessor)bee).removeMemorizedHive(bee);
         }
         bee.getBrain().setMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE, 200);
@@ -47,8 +47,7 @@ public interface HiveAccessor {
     }
 
     default void removeMemorizedHive(Bee bee) {
-        ((HiveAccessor)bee).blacklistTarget(bee, bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
-        bee.getBrain().eraseMemory(ModMemoryTypes.HIVE_POS);
+        ((HiveAccessor)bee).blacklistTarget(bee, ((HiveAccessor) bee).brainier_bees$getMemorizedHome());
         bee.getBrain().setMemory(ModMemoryTypes.STUCK_TICKS, 0);
         bee.getBrain().setMemory(ModMemoryTypes.TRAVELLING_TICKS, 0);
         ((HiveAccessor)bee).brainier_bees$setMemorizedHome(null);

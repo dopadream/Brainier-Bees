@@ -15,7 +15,6 @@ import java.util.Optional;
 public class ModMemoryTypes {
 
     public static final MemoryModuleType<GlobalPos> FLOWER_POS = register("flower_pos", GlobalPos.CODEC);
-    public static final MemoryModuleType<GlobalPos> HIVE_POS = register("hive_pos", GlobalPos.CODEC);
     public static final MemoryModuleType<Path> LAST_PATH = register("last_path");
 
     public static final MemoryModuleType<List<GlobalPos>> HIVE_BLACKLIST = register("hive_blacklist");

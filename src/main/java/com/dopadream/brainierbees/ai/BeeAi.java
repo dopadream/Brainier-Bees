@@ -2,6 +2,7 @@ package com.dopadream.brainierbees.ai;
 
 import com.dopadream.brainierbees.ai.tasks.*;
 import com.dopadream.brainierbees.registry.ModMemoryTypes;
+import com.dopadream.brainierbees.util.HiveAccessor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.datafixers.util.Pair;
@@ -112,10 +113,10 @@ public class BeeAi {
 
 
     public static boolean isHiveNearFire(ServerLevel level, Bee bee) {
-        if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty()) {
+        if (((HiveAccessor) bee).brainier_bees$getMemorizedHome() == null) {
             return false;
         } else {
-            BlockEntity blockEntity = level.getBlockEntity(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
+            BlockEntity blockEntity = level.getBlockEntity(((HiveAccessor) bee).brainier_bees$getMemorizedHome());
             return blockEntity instanceof BeehiveBlockEntity && ((BeehiveBlockEntity)blockEntity).isFireNearby();
         }
     }

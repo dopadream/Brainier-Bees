@@ -29,7 +29,7 @@ public class LocateHiveTask extends Behavior<Bee> {
 
     @Override
     protected boolean checkExtraStartConditions(ServerLevel serverLevel, Bee bee) {
-        return bee.getBrain().getMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE).isEmpty() && bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isEmpty();
+        return bee.getBrain().getMemory(ModMemoryTypes.COOLDOWN_LOCATE_HIVE).isEmpty() && ((HiveAccessor) bee).brainier_bees$getMemorizedHome() == null;
     }
 
     @Override

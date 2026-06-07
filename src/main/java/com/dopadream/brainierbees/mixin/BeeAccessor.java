@@ -9,13 +9,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(Bee.class)
 public interface BeeAccessor {
 
-
-    @Accessor
-    int getStayOutOfHiveCountdown();
-
-    @Accessor("hivePos")
-    public void setHivePos(BlockPos pos);
-
     @Accessor("remainingCooldownBeforeLocatingNewFlower")
     public void setRemainingCooldownBeforeLocatingNewFlower(int integer);
 

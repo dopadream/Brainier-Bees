@@ -14,15 +14,15 @@ import java.util.Map;
 public class EnterHiveTask extends Behavior<Bee> {
 
     public EnterHiveTask() {
-        super(Map.of(ModMemoryTypes.HIVE_POS, MemoryStatus.VALUE_PRESENT));
+        super(Map.of(ModMemoryTypes.WANTS_HIVE, MemoryStatus.VALUE_PRESENT));
     }
 
 
     @Override
     protected boolean checkExtraStartConditions(ServerLevel serverLevel, Bee bee) {
         var canEnter = false;
-        if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent() && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent() && bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos().closerToCenterThan(bee.position(), 2.0)) {
-            BlockEntity blockEntity = serverLevel.getBlockEntity(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
+        if (((HiveAccessor) bee).brainier_bees$getMemorizedHome() != null && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent() && ((HiveAccessor) bee).brainier_bees$getMemorizedHome().closerToCenterThan(bee.position(), 2.0)) {
+            BlockEntity blockEntity = serverLevel.getBlockEntity(((HiveAccessor) bee).brainier_bees$getMemorizedHome());
             if (blockEntity instanceof BeehiveBlockEntity beehiveBlockEntity) {
                 if (!beehiveBlockEntity.isFull()) {
                     canEnter = true;
@@ -36,8 +36,8 @@ public class EnterHiveTask extends Behavior<Bee> {
 
     @Override
     protected void start(ServerLevel serverLevel, Bee bee, long l) {
-        if (bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()) {
-            BlockEntity blockEntity = serverLevel.getBlockEntity(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos());
+        if (((HiveAccessor) bee).brainier_bees$getMemorizedHome() != null) {
+            BlockEntity blockEntity = serverLevel.getBlockEntity(((HiveAccessor) bee).brainier_bees$getMemorizedHome());
             if (blockEntity instanceof BeehiveBlockEntity beehiveBlockEntity) {
                 bee.getBrain().setMemory(ModMemoryTypes.STUCK_TICKS, 0);
                 beehiveBlockEntity.addOccupant(bee);

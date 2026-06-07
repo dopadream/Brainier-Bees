@@ -5,7 +5,6 @@ import com.dopadream.brainierbees.config.BrainierBeesConfig;
 import com.dopadream.brainierbees.registry.ModMemoryTypes;
 import com.dopadream.brainierbees.util.HiveAccessor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
@@ -20,13 +19,13 @@ import java.util.Optional;
 public class GoToHiveTask extends Behavior<Bee> {
 
     public GoToHiveTask() {
-        super(Map.of(ModMemoryTypes.HIVE_POS, MemoryStatus.VALUE_PRESENT, ModMemoryTypes.COOLDOWN_LOCATE_HIVE, MemoryStatus.VALUE_ABSENT));
+        super(Map.of(ModMemoryTypes.WANTS_HIVE, MemoryStatus.VALUE_PRESENT, ModMemoryTypes.COOLDOWN_LOCATE_HIVE, MemoryStatus.VALUE_ABSENT));
     }
 
 
     @Override
     protected boolean canStillUse(ServerLevel level, Bee bee, long l) {
-        return bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()
+        return ((HiveAccessor) bee).brainier_bees$getMemorizedHome() != null
                 && (bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent()
                 && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).get())
                 && !BeeAi.isHiveNearFire(level, bee)
@@ -35,7 +34,7 @@ public class GoToHiveTask extends Behavior<Bee> {
 
     @Override
     protected boolean checkExtraStartConditions(ServerLevel level, Bee bee) {
-        return bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).isPresent()
+        return ((HiveAccessor) bee).brainier_bees$getMemorizedHome() != null
                 && (bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).isPresent()
                 && bee.getBrain().getMemory(ModMemoryTypes.WANTS_HIVE).get())
                 && !BeeAi.isHiveNearFire(level, bee)
@@ -59,20 +58,17 @@ public class GoToHiveTask extends Behavior<Bee> {
     protected void tick(ServerLevel level, Bee bee, long l) {
         var brain = bee.getBrain();
 
-        Optional<GlobalPos> hivePosOpt = brain.getMemory(ModMemoryTypes.HIVE_POS);
+        BlockPos hivePos = ((HiveAccessor) bee).brainier_bees$getMemorizedHome();
         Optional<Integer> travellingTicksOpt = brain.getMemory(ModMemoryTypes.TRAVELLING_TICKS);
         Optional<Integer> stuckTicksOpt = brain.getMemory(ModMemoryTypes.STUCK_TICKS);
         Optional<Path> lastPathOpt = brain.getMemory(ModMemoryTypes.LAST_PATH);
 
         // Handle the homeless
-        if (hivePosOpt.isEmpty()) {
+        if (hivePos == null) {
             brain.setMemory(ModMemoryTypes.TRAVELLING_TICKS, 1);
             dropHive(bee);
             return;
         }
-
-        GlobalPos hiveGlobal = hivePosOpt.get();
-        BlockPos hivePos = hiveGlobal.pos();
 
         // Travelling ticks handling
         int travellingTicks = travellingTicksOpt.orElse(0) + 1;
@@ -115,13 +111,12 @@ public class GoToHiveTask extends Behavior<Bee> {
         var canReach = true;
         if (bee.isLeashed() && bee.getLeashData() != null && bee.getLeashData().leashHolder != null) {
             BlockPos leashOrigin = bee.getLeashData().leashHolder.blockPosition();
-            if (!leashOrigin.closerThan(bee.getBrain().getMemory(ModMemoryTypes.HIVE_POS).get().pos(), 5.5)) {
+            if (!leashOrigin.closerThan(((HiveAccessor) bee).brainier_bees$getMemorizedHome(), 5.5)) {
                 canReach = false;
             }
         }
         return canReach;
     }
-
 
     private boolean pathfindDirectlyTowards(BlockPos blockPos, Bee bee) {
         bee.getNavigation().setMaxVisitedNodesMultiplier(10.0F);
