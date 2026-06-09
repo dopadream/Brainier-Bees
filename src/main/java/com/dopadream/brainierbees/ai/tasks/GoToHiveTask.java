@@ -9,8 +9,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.util.AirRandomPos;
 import net.minecraft.world.entity.animal.bee.Bee;
 import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Map;
 import java.util.Objects;
@@ -82,7 +84,7 @@ public class GoToHiveTask extends Behavior<Bee> {
 
         // Pathfinding
         if (!bee.getNavigation().isInProgress()) {
-            if (!pathfindDirectlyTowards(hivePos, bee)) {
+            if (!pathfindRandomlyTowards(hivePos, bee, 0.6F)) {
                 dropHive(bee);
                 return;
             }
@@ -118,9 +120,32 @@ public class GoToHiveTask extends Behavior<Bee> {
         return canReach;
     }
 
-    private boolean pathfindDirectlyTowards(BlockPos blockPos, Bee bee) {
-        bee.getNavigation().setMaxVisitedNodesMultiplier(10.0F);
-        bee.getNavigation().moveTo(blockPos.getX(), blockPos.getY(), blockPos.getZ(), 1.0);
+
+    private boolean pathfindRandomlyTowards(final BlockPos targetPos, Bee bee, float speed) {
+        Vec3 targetVec = Vec3.atBottomCenterOf(targetPos);
+        int yAdjust = 0;
+        BlockPos beePos = bee.blockPosition();
+        int yDelta = (int)targetVec.y - beePos.getY();
+        if (yDelta > 2) {
+            yAdjust = 4;
+        } else if (yDelta < -2) {
+            yAdjust = -4;
+        }
+
+        int xzDist = 6;
+        int yDist = 8;
+        int dist = beePos.distManhattan(targetPos);
+        if (dist < 15) {
+            xzDist = dist / 2;
+            yDist = dist / 2;
+        }
+
+        Vec3 nextPosTowards = AirRandomPos.getPosTowards(bee, xzDist, yDist, yAdjust, targetVec, (double)((float)Math.PI / 10F));
+        if (nextPosTowards != null) {
+            bee.getNavigation().setMaxVisitedNodesMultiplier(0.5F);
+            bee.getNavigation().moveTo(nextPosTowards.x, nextPosTowards.y, nextPosTowards.z, speed);
+        }
+
         return bee.getNavigation().getPath() != null && bee.getNavigation().getPath().canReach();
     }
 }

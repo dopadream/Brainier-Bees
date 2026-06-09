@@ -13,8 +13,9 @@ import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.util.AirRandomPos;
 import net.minecraft.world.entity.animal.bee.Bee;
-import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Map;
@@ -95,11 +96,13 @@ public class FindFlowerTask extends Behavior<Bee> {
     protected void tick(ServerLevel level, Bee bee, long l) {
         if (this.flowerPosPublic != null) {
             BlockPos flowerPos = this.flowerPosPublic;
-            BehaviorUtils.setWalkAndLookTargetMemories(bee, flowerPos, 0.4F, 1);
-            Path flower = bee.getNavigation().createPath(flowerPos, 1);
-            if (flower != null && flower.canReach() && Bee.attractsBees(level.getBlockState(flowerPos))) {
+            if (Bee.attractsBees(level.getBlockState(flowerPos))) {
 
-                bee.getNavigation().moveTo(flower, 0.6);
+                if (!bee.getNavigation().isInProgress()) {
+                    if (!pathfindRandomlyTowards(flowerPos, bee, 0.6F)) {
+                        return;
+                    };
+                }
 
                 if (bee.blockPosition().closerThan(flowerPos, 2)) {
                     bee.getBrain().setMemory(ModMemoryTypes.FLOWER_POS, GlobalPos.of(level.dimension(), flowerPos));
@@ -129,5 +132,33 @@ public class FindFlowerTask extends Behavior<Bee> {
         if (bee.getBrain().getMemory(ModMemoryTypes.POLLINATING_COOLDOWN).isEmpty() && bee.hasNectar()) {
             bee.getBrain().setMemory(ModMemoryTypes.POLLINATING_COOLDOWN, 100);
         }
+    }
+
+    private boolean pathfindRandomlyTowards(final BlockPos targetPos, Bee bee, float speed) {
+        Vec3 targetVec = Vec3.atBottomCenterOf(targetPos);
+        int yAdjust = 0;
+        BlockPos beePos = bee.blockPosition();
+        int yDelta = (int)targetVec.y - beePos.getY();
+        if (yDelta > 2) {
+            yAdjust = 4;
+        } else if (yDelta < -2) {
+            yAdjust = -4;
+        }
+
+        int xzDist = 6;
+        int yDist = 8;
+        int dist = beePos.distManhattan(targetPos);
+        if (dist < 15) {
+            xzDist = dist / 2;
+            yDist = dist / 2;
+        }
+
+        Vec3 nextPosTowards = AirRandomPos.getPosTowards(bee, xzDist, yDist, yAdjust, targetVec, (float)Math.PI / 10F);
+        if (nextPosTowards != null) {
+            bee.getNavigation().setMaxVisitedNodesMultiplier(0.5F);
+            bee.getNavigation().moveTo(nextPosTowards.x, nextPosTowards.y, nextPosTowards.z, speed);
+        }
+
+        return bee.getNavigation().getPath() != null && bee.getNavigation().getPath().canReach();
     }
 }
