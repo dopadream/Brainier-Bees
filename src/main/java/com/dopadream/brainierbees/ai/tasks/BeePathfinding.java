@@ -95,7 +95,7 @@ public class BeePathfinding extends Behavior<Bee> {
                         }
                     } else {
                         mutable.set(
-                                lerp(new Vec3(mutable.getX(), mutable.getY(), mutable.getZ()), Objects.requireNonNull(bee.getLeashData().leashHolder).position(), 0.25)
+                                lerp(Vec3.atCenterOf(mutable), Objects.requireNonNull(bee.getLeashData().leashHolder).position(), 0.25)
                         );
                         break; // Wander freely in a small area when on a leash!
                     }

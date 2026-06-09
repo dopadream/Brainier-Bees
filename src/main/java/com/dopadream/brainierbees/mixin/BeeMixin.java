@@ -126,11 +126,7 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
             }
         }
 
-        if (brainier_bees$newWantsHive()) {
-            $this.getBrain().setMemory(ModMemoryTypes.WANTS_HIVE, true);
-        } else {
-            $this.getBrain().eraseMemory(ModMemoryTypes.WANTS_HIVE);
-        }
+        brainier_bees$tickWantsHive();
     }
 
     @Override
@@ -139,13 +135,17 @@ public abstract class BeeMixin extends Animal implements HiveAccessor {
     }
 
     @Unique
-    public boolean brainier_bees$newWantsHive() {
+    public void brainier_bees$tickWantsHive() {
         Bee bee = (Bee) (Object) this;
         if (!bee.hasStung() && !this.brainier_bees$newIsPollinating() && bee.getTarget() == null) {
             boolean bl = this.level().environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, this.position()) || brainier_bees$isSickOfSearching() || bee.hasNectar();
-            return bl && !this.brainier_bees$newHiveNearFire();
+            if (bl && !this.brainier_bees$newHiveNearFire()) {
+                bee.getBrain().setMemory(ModMemoryTypes.WANTS_HIVE, true);
+            } else {
+                bee.getBrain().eraseMemory(ModMemoryTypes.WANTS_HIVE);
+            }
         } else {
-            return false;
+            bee.getBrain().eraseMemory(ModMemoryTypes.WANTS_HIVE);
         }
     }
 
