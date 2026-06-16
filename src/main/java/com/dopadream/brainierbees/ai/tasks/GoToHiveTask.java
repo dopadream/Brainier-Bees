@@ -78,14 +78,14 @@ public class GoToHiveTask extends Behavior<Bee> {
 
         int maxTravelTicks = 80 * BrainierBeesConfig.MAX_WANDER_RADIUS;
         if (travellingTicks > maxTravelTicks) {
-            dropHive(bee);
+            dropAndBlacklistHive(bee);
             return;
         }
 
         // Pathfinding
         if (!bee.getNavigation().isInProgress()) {
-            if (!pathfindRandomlyTowards(hivePos, bee, 0.6F)) {
-                dropHive(bee);
+            if (!pathfindDirectlyTowards(hivePos, bee)) {
+                dropAndBlacklistHive(bee);
                 return;
             }
         }
@@ -106,6 +106,10 @@ public class GoToHiveTask extends Behavior<Bee> {
     }
 
     private void dropHive(Bee bee) {
+        ((HiveAccessor) bee).dropHive(bee);
+    }
+
+    private void dropAndBlacklistHive(Bee bee) {
         ((HiveAccessor) bee).dropAndBlacklistHive(bee);
     }
 
@@ -120,32 +124,9 @@ public class GoToHiveTask extends Behavior<Bee> {
         return canReach;
     }
 
-
-    private boolean pathfindRandomlyTowards(final BlockPos targetPos, Bee bee, float speed) {
-        Vec3 targetVec = Vec3.atBottomCenterOf(targetPos);
-        int yAdjust = 0;
-        BlockPos beePos = bee.blockPosition();
-        int yDelta = (int)targetVec.y - beePos.getY();
-        if (yDelta > 2) {
-            yAdjust = 4;
-        } else if (yDelta < -2) {
-            yAdjust = -4;
-        }
-
-        int xzDist = 6;
-        int yDist = 8;
-        int dist = beePos.distManhattan(targetPos);
-        if (dist < 15) {
-            xzDist = dist / 2;
-            yDist = dist / 2;
-        }
-
-        Vec3 nextPosTowards = AirRandomPos.getPosTowards(bee, xzDist, yDist, yAdjust, targetVec, (double)((float)Math.PI / 10F));
-        if (nextPosTowards != null) {
-            bee.getNavigation().setMaxVisitedNodesMultiplier(0.5F);
-            bee.getNavigation().moveTo(nextPosTowards.x, nextPosTowards.y, nextPosTowards.z, speed);
-        }
-
+    private boolean pathfindDirectlyTowards(BlockPos blockPos, Bee bee) {
+        bee.getNavigation().setMaxVisitedNodesMultiplier(10.0F);
+        bee.getNavigation().moveTo(blockPos.getX(), blockPos.getY(), blockPos.getZ(), 1.0);
         return bee.getNavigation().getPath() != null && bee.getNavigation().getPath().canReach();
     }
 }
