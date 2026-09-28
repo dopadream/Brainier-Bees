@@ -13,21 +13,14 @@ public class BeePollenHelper {
 
     private static final Map<Block, GrowthHandler> growthHandlers = new HashMap<>();
 
-    static {
-        growthHandlers.put(Blocks.SWEET_BERRY_BUSH, (level, pos, state, random) -> {
-            int age = state.getValue(SweetBerryBushBlock.AGE);
-            return age < 3 ? state.setValue(SweetBerryBushBlock.AGE, age + 1) : null;
-        });
-
-        growthHandlers.put(Blocks.CAVE_VINES, BeePollenHelper::growBonemealable);
-        growthHandlers.put(Blocks.CAVE_VINES_PLANT, BeePollenHelper::growBonemealable);
-
-    }
-
     private static BlockState growBonemealable(ServerLevel level, BlockPos pos, BlockState state, RandomSource random) {
         BonemealableBlock block = (BonemealableBlock) state.getBlock();
-        if (block.isValidBonemealTarget(level, pos, state)) {
-            block.performBonemeal(level, random, pos, state);
+        if (block.isValidBonemealTarget(level, pos, state, BonemealSource.INTERACTION)) {
+            block.performBonemeal(level, random, pos, state, BonemealSource.INTERACTION);
+            return level.getBlockState(pos);
+        }
+        if (block.isValidBonemealTarget(level, pos, state, BonemealSource.MOB)) {
+            block.performBonemeal(level, random, pos, state, BonemealSource.MOB);
             return level.getBlockState(pos);
         }
         return null;
@@ -49,5 +42,17 @@ public class BeePollenHelper {
     @FunctionalInterface
     interface GrowthHandler {
         BlockState apply(ServerLevel level, BlockPos pos, BlockState state, RandomSource random);
+    }
+
+
+    static {
+        growthHandlers.put(Blocks.SWEET_BERRY_BUSH, (level, pos, state, random) -> {
+            int age = state.getValue(SweetBerryBushBlock.AGE);
+            return age < 3 ? state.setValue(SweetBerryBushBlock.AGE, age + 1) : null;
+        });
+
+        growthHandlers.put(Blocks.CAVE_VINES, BeePollenHelper::growBonemealable);
+        growthHandlers.put(Blocks.CAVE_VINES_PLANT, BeePollenHelper::growBonemealable);
+
     }
 }
